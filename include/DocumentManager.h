@@ -5,6 +5,10 @@
 #include <sstream>
 #include <map>
 #include <algorithm>
+#include "Exceptions.h"
+
+#define NO_CHARS 256
+
 using namespace std;
 
 class DocumentManager {
@@ -42,6 +46,12 @@ public:
 	bool copy(int start, int end);
 	bool paste(int position);
 
+
+	
+	vector<int>badCharacterHeuristic(const string& pattern);
+	vector<int>failureF(const string& pattern);
+	vector<int>goodSuffixHeuristic(const string& pattern);
+	bool findUsingBM(const string& text, const string& pattern, int&i, int n, int m);
+	vector<int> find(const string& text, const string& pattern);
 	//void undo(vector<pair<bool (*fnc)(), vector<string>arguments>>)
 };
-

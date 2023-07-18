@@ -1,9 +1,12 @@
-#include "../include/DocumentManager.h"
+
+#include "DocumentManager.h"
 /*
 TO-DO'S
-exceptii
 pointer pentru ultima zona modificata pentru salvare
 */
+
+out_of_bounds outOfBounds;
+
 DocumentManager::DocumentManager() {
 	buffer = "";
 	filename = "";
@@ -75,10 +78,10 @@ bool DocumentManager::initializeLineBuffer()
 		}
 	}
 	for (int i = 0; i < lineBuffer.size(); ++i) {
-		//printf("line %d starts at position %d in the given string\n", i, lineBuffer[i]);
+		printf("line %d starts at position %d in the given string\n", i, lineBuffer[i]);
 	}
 
-	//printf("linecount: %d \n", getLineCount());
+	printf("linecount: %d \n", getLineCount());
 	return true;
 }
 
@@ -101,6 +104,8 @@ string DocumentManager::getBufferSection(int line_start, int col_start, int line
 	}
 	return result;
 }
+
+/*  functia asta era duplicata.. verifica te rog care e cea scrisa de tine ultima data si sterge o pe cealalta
 bool DocumentManager::insertText(int line, int col, const string& inserted)//de implementat exceptii.
 {
 	if (line > getLineCount() || line < 0) {
@@ -115,6 +120,19 @@ bool DocumentManager::insertText(int line, int col, const string& inserted)//de 
 		printf("Error at insertText : line argument is invalid");
 		return false;
 	}
+  */
+bool DocumentManager::insertText(int line, int col, const string& inserted)//de implementat exceptii.
+{
+	try{
+		if ((line > getLineCount() or line < 0) or (line == getLineCount() and col > 0) or (lineBuffer[line] + col > buffer.size())) {
+			throw outOfBounds;
+		}
+	}
+	catch (exception& e) {
+		cerr << "Error at insertText: " <<  e.what();
+		return false;
+	} 
+
 	printf("the program tried inserting at line %d, col %d, position %d\n-----------------------------------------------\n", line, col, lineBuffer[line] + col);
 	buffer.insert(lineBuffer[line] + col, inserted);
 	int insSize = inserted.size();
@@ -339,3 +357,147 @@ vector<int> DocumentManager::getLineBuffer()
 {
 	return lineBuffer;
 }
+vector<int> DocumentManager::badCharacterHeuristic(const string& pattern)
+{
+	vector<int>BC(NO_CHARS, -1);
+	printf("the BC vector after declaration:\n-----------------------------------------------\n");
+	for (auto elem : BC) {
+		printf("%d, ", elem);
+	}
+	printf("\n-----------------------------------------------\n");
+	//fill(BC.begin(), BC.end(), -1);
+	int m = pattern.size();
+	for (int i = 0; i < m; ++i) {
+		BC[(int)pattern[i]] = i;
+	}
+	printf("the BC vector after preprocessing:\n-----------------------------------------------\n");
+	for (auto elem : BC) {
+		printf("%d, ", elem);
+	}
+	printf("\n-----------------------------------------------\n");
+	return BC;
+}
+
+vector<int> DocumentManager::failureF(const string& pattern)
+{
+	int m = pattern.size();
+	vector<int>failure(m+1);
+	failure[0] = -1;
+	for (int i = 1; i <= m; ++i) {
+		int k = failure[i - 1];
+		while (k >= 0 and pattern[k] != pattern[i - 1]) {
+			k = failure[k];
+		}
+		if (k == -1) {
+			failure[i] = 0;
+		}
+		else {
+			failure[i] = k+1;
+		}
+	}
+	printf("output of failure function:\n");
+	for (auto ch : pattern) {
+		printf(" %c", ch);
+	}
+	printf("\n");
+	for (auto elem : failure) {
+		printf("%d ", elem);
+	}
+	printf("\n");
+	for (int i = 0; i <= m; ++i) {
+		printf(" %d", i);
+	}
+	printf("\n-----------------------------------------------\n");
+	return failure;
+}
+
+vector<int> DocumentManager::goodSuffixHeuristic(const string& pattern)
+{
+	int m = pattern.size();
+	vector<int>failure(m + 1);
+	string inverse_string = pattern;
+	failure = failureF(pattern);
+	vector<int>GS(m+1);//m+1?
+	for (int i = 0; i < m; ++i) {
+		GS[i] = failure[m] - (m - i);
+	}
+	printf("Content of GS after the first stage of peprocessing:\n-----------------------------------------------\n");
+	for (auto elem : GS) {
+		printf("%d ", elem);
+	}
+	printf("\n");
+	reverse(inverse_string.begin(), inverse_string.end());
+	failure = failureF(inverse_string);
+	printf("failure function for inverted text:\n");
+	for (auto elem : failure) {
+		printf("%d ", elem);
+	}
+	printf("\n");
+	reverse(failure.begin(), failure.end());
+	printf("inverted failure function for inverted text:\n");
+	for (auto elem : failure) {
+		printf("%d ", elem);
+	}
+	printf("\n-----------------------------------------------\n");
+	printf("Content of GS after the second stage of peprocessing:\n-----------------------------------------------\n");
+	for (int i = 0; i < m; ++i) {
+		int len = failure[i];
+		printf("%d ", len);
+		GS[m - len] = i;
+	}
+	printf("\n");
+	for (auto elem : GS) {
+		printf("%d ", elem);
+	}
+	printf("\n");
+	return GS;
+}
+
+bool DocumentManager::findUsingBM(const string& text, const string& pattern, int& i, int n, int m)
+{
+	int k = 0;
+	vector<int>BC = badCharacterHeuristic(pattern);
+	vector<int>GS = goodSuffixHeuristic(pattern);
+	while (k < m and i <= n - m) {
+		if (text[i + m - 1 - k] == pattern[m - 1 - k]) {
+			k++;
+		}
+		else {
+			int shiftbc = m - k - 1 - BC[(int)text[i + m - 1 - k]];
+			int shiftgs = m - k - GS[m - k];
+			i += max(shiftbc, shiftgs);
+			k = 0;
+		}
+	}
+	if (k == m) {
+		printf("an occurence of pattern in text was found at index: %d\n", i);
+		return true;
+	}
+	printf("no occurences of pattern in text\n");
+	return false;
+}
+
+vector<int> DocumentManager::find(const string& text, const string& pattern)
+{
+	vector<int>found;
+	int startpos = 0;
+	int m = pattern.size();
+	int n = text.size();
+	while (startpos <= n - m) {
+		if (findUsingBM(text, pattern, startpos, n, m)) {
+			found.push_back(startpos);
+			startpos++;
+		}
+	}
+	if (found.empty()) {
+		printf("no occurences of pattern\n");
+		return { -1 };
+	}
+	else {
+		printf("pattern found at positions:\n-----------------------------------------------\n");
+		for (auto pos : found) {
+			printf("%d ", pos);
+		}
+		return found;
+	}
+

@@ -1,21 +1,23 @@
 #include <iostream>
-#include <chrono>
-#include <ctime>
 using namespace std;
-#include "../include/DocumentManager.h"
-#include "../include/Cursor.h"
-#include "../include/Select.h"
+#include "DocumentManager.h"
+
 
 int main(int argc, char*argv[])
 {
-
-
-
     string path; 
-    path = "../assets/testDoc.txt";
+    char ch;
+    printf("Enter the document's path:\n");
+    getline(cin, path);
+    if (path == "") {
+        printf("no path in input, default path used\n-----------------------------------------------\n");
+        path = "D:/code/vs/varinate_sesiune/textEdd/textEdd/testDoc.txt";
+    }
+    printf("path of exe: %s\n-----------------------------------------------\n", argv[0]);
     DocumentManager document;
     document.open(path);
     document.initializeLineBuffer();
+    document.insertText(20, 2, "da");
     //document.deleteText(1, 1, 13);
     //document.deleteLine(0);
     //document.insertLine(0, "ababab");
@@ -28,40 +30,7 @@ int main(int argc, char*argv[])
     //document.insertText(2, 0, "abc\nd\n");
     //document.copy(0, 7);
     //document.paste(16);
-    Cursor test(&document);
-    int dir;
-
-    while(true)
-    {
-        test.log();
-        cout<<"move cursor: \n";
-        cin>>dir;
-        switch(dir)
-        {
-            case 1: 
-            {
-                test.moveToWord(1);
-                break;
-            }
-            case 2: 
-            {
-                test.moveToWord(-1);
-                break;
-            }
-            case 3: 
-            {
-                test.jumpTo(Cursor::StartOfParagraph);
-                break;
-            }
-            case 4: 
-            {
-                test.jumpTo(Cursor::EndOfParagraph);
-                break;
-            }
-            default:
-                break;
-        }
-        
-    }
+    //document.goodSuffixHeuristic("ABABACABA");
+    document.find("MAMAMAMA", "MAMA");
     return 0;
 }
