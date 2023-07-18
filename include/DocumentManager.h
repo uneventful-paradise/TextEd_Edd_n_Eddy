@@ -3,8 +3,8 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
-#include <filesystem>
 #include <map>
+#include <algorithm>
 using namespace std;
 
 class DocumentManager {
@@ -27,6 +27,10 @@ public:
 	//TO-DO : save the document after each change (insertion /deletion)(via isChanged) or before closing
 	bool initializeLineBuffer();
 	int getLineCount();
+	int getColCount(int line);
+	string getBufferSection(int line_start, int col_start, int line_stop, int col_stop);
+	string getBuffer();
+	vector<int> getLineBuffer();
 	bool insertText(int line, int col, const string& inserted);
 	bool insertLine(int line, const string& text);//overloaded function
 	bool deleteText(int line, int col, int size);//stack cu substringuri sterse

@@ -1,4 +1,4 @@
-#include "DocumentManager.h"
+#include "../include/DocumentManager.h"
 /*
 TO-DO'S
 exceptii
@@ -42,7 +42,7 @@ bool DocumentManager::create(const string& filename)
 		char ch;
 		printf("File already exists. Overwrite? Y/N\n");
 		cin >> ch;
-		if (ch != 'y' and ch != 'Y') {
+		if (ch != 'y' && ch != 'Y') {
 			return false;
 		}
 	}
@@ -69,16 +69,16 @@ bool DocumentManager::initializeLineBuffer()
 	if (bufferSize == 0)return false;
 
 	for (int i = 0; i < bufferSize; ++i) {
-		if (buffer[i] == '\n' or buffer[i] == 10) {
+		if (buffer[i] == '\n' || buffer[i] == 10) {
 			lineIndex = i + 1;
 			lineBuffer.push_back(lineIndex);
 		}
 	}
 	for (int i = 0; i < lineBuffer.size(); ++i) {
-		printf("line %d starts at position %d in the given string\n", i, lineBuffer[i]);
+		//printf("line %d starts at position %d in the given string\n", i, lineBuffer[i]);
 	}
 
-	printf("linecount: %d \n", getLineCount());
+	//printf("linecount: %d \n", getLineCount());
 	return true;
 }
 
@@ -87,13 +87,27 @@ int DocumentManager::getLineCount()
 	return lineBuffer.size()-1;
 }
 
+int DocumentManager::getColCount(int line)
+{
+    return lineBuffer[line + 1] - lineBuffer[line];
+}
+string DocumentManager::getBufferSection(int line_start, int col_start, int line_stop, int col_stop)
+{
+	string result = "";
+
+	for(int i = lineBuffer[line_start] + col_start; i < lineBuffer[line_stop] + col_stop; i++)
+	{
+		result += buffer[i];
+	}
+	return result;
+}
 bool DocumentManager::insertText(int line, int col, const string& inserted)//de implementat exceptii.
 {
-	if (line > getLineCount() or line < 0) {
+	if (line > getLineCount() || line < 0) {
 		printf("Error at insertText : line argument is invalid");
 		return false;
 	}
-	if (line == getLineCount() and col > 0) {
+	if (line == getLineCount() && col > 0) {
 		printf("Error at insertText : line argument is invalid");
 		return false;
 	}
@@ -110,7 +124,7 @@ bool DocumentManager::insertText(int line, int col, const string& inserted)//de 
 		lineBuffer[level] += insSize;
 	}
 	for (int i = 0; i < insSize; ++i) {
-		if (inserted[i] == '\n' or inserted[i] == 10) {
+		if (inserted[i] == '\n' || inserted[i] == 10) {
 			newLine = true;
 			int pos = lineBuffer[line] + col;
 			printf("a newline was found at position %d in the inserted text\n-----------------------------------------------\n", pos + i + 1);
@@ -129,7 +143,7 @@ bool DocumentManager::insertText(int line, int col, const string& inserted)//de 
 
 bool DocumentManager::insertLine(int line, const string& text)
 {
-	if (line < 0 or line > getLineCount()) {
+	if (line < 0 || line > getLineCount()) {
 		printf("Error at insertLine: invalid line\n");
 		return false;
 	}
@@ -152,7 +166,7 @@ bool DocumentManager::insertLine(int line, const string& text)
 
 bool DocumentManager::deleteText(int line, int col, int size)
 {
-	if (line < 0 or (lineBuffer[line] + col + size >= lineBuffer[getLineCount()])) {//size ca sa stearga pana la final
+	if (line < 0 || (lineBuffer[line] + col + size >= lineBuffer[getLineCount()])) {//size ca sa stearga pana la final
 		printf("Error at deleteText: invalid line\n");
 		return false;
 	}
@@ -160,7 +174,7 @@ bool DocumentManager::deleteText(int line, int col, int size)
 	int endpos = startpos + size;
 	int endlCount = 0;
 	for (int i = startpos; i < endpos; ++i) {
-		if (buffer[i] == '\n' or buffer[i] == 10) {
+		if (buffer[i] == '\n' || buffer[i] == 10) {
 			endlCount++;
 		}
 	}
@@ -188,7 +202,7 @@ bool DocumentManager::deleteText(int line, int col, int size)
 
 bool DocumentManager::deleteLine(int line)
 {
-	if (line < 0 or line >= getLineCount()) {
+	if (line < 0 || line >= getLineCount()) {
 		printf("Error at deleteLine: invalid line\n");
 		return false;
 	}
@@ -209,7 +223,7 @@ bool DocumentManager::deleteLine(int line)
 
 string DocumentManager::getLine(int line)
 {
-	if (line < 0 or line >= getLineCount()) {
+	if (line < 0 || line >= getLineCount()) {
 		printf("Error at getLine: invalid line argument\n");
 		return string("");
 	}
@@ -225,7 +239,7 @@ string DocumentManager::getLine(int line)
 bool DocumentManager::swapLines(int line1, int line2)//swaplines pt mai multe
 {
 	int lineC = getLineCount();
-	if ((line1 >= lineC or line1 < 0) or (line2 >= lineC or line2 < 0)) {
+	if ((line1 >= lineC || line1 < 0) || (line2 >= lineC || line2 < 0)) {
 		printf("Error at swapLines: invalid line\n");
 		return false;
 	}
@@ -252,7 +266,7 @@ vector<pair<string, int>> DocumentManager::tokenize()//mai bine cu map?
 	vector<pair<string, int>>words;
 	do {
 		endpos = buffer.find_first_of(" .,/?!;:\"(){}[]%+=\n", beginpos);//ce separatori? + merge pt endl?
-		if (beginpos != endpos and endpos != string::npos) {
+		if (beginpos != endpos && endpos != string::npos) {
 			word = buffer.substr(beginpos, endpos - beginpos);
 			pair<string, int>p = { word, beginpos };
 			words.push_back(p);//de ce nu &p
@@ -285,7 +299,7 @@ vector<int> DocumentManager::searchForWord(const string& word)
 
 bool DocumentManager::copy(int start, int end)
 {
-	if (start < 0 or end >= lineBuffer[getLineCount()]) {
+	if (start < 0 || end >= lineBuffer[getLineCount()]) {
 		printf("Error at copy: invalid line argument\n");
 		return false;
 	}
@@ -299,7 +313,7 @@ bool DocumentManager::copy(int start, int end)
 
 bool DocumentManager::paste(int position)
 {
-	if (position < 0 or position > lineBuffer[getLineCount()]) {
+	if (position < 0 || position > lineBuffer[getLineCount()]) {
 		printf("Error at paste: invalid position argument");
 		return false;
 	}
@@ -315,4 +329,13 @@ bool DocumentManager::paste(int position)
 	printf("the string after pasting:\n%s\n-----------------------------------------------\n", buffer.c_str());
 	copyBuffer.clear();
 	return true;
+}
+
+string DocumentManager::getBuffer()
+{
+	return buffer;
+}
+vector<int> DocumentManager::getLineBuffer()
+{
+	return lineBuffer;
 }
