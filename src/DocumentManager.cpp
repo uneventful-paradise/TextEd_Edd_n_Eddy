@@ -91,6 +91,7 @@ int DocumentManager::getLineCount()
 
 bool DocumentManager::insertText(int line, int col, const string& inserted)//de implementat exceptii.
 {
+	printf("start of insertText\n-----------------------------------------------\n");
 	try{
 		if ((line > getLineCount() or line < 0) or (line == getLineCount() and col > 0) or (lineBuffer[line] + col > buffer.size())) {
 			throw outOfBounds;
@@ -101,7 +102,7 @@ bool DocumentManager::insertText(int line, int col, const string& inserted)//de 
 		return false;
 	} 
 
-	printf("the program tried inserting at line %d, col %d, position %d\n-----------------------------------------------\n", line, col, lineBuffer[line] + col);
+	printf("the program tried inserting at line %d, col %d, position %d, text %s\n-----------------------------------------------\n", line, col, lineBuffer[line] + col, inserted.c_str());
 	buffer.insert(lineBuffer[line] + col, inserted);
 	int insSize = inserted.size();
 	bool newLine = false;
@@ -125,15 +126,36 @@ bool DocumentManager::insertText(int line, int col, const string& inserted)//de 
 		printf("line %d starts at position %d in the given string\n", i, lineBuffer[i]);
 	}
 	printf("the string after the insertion operation:\n%s\n-----------------------------------------------\n", buffer.c_str());
+	//for logging
+
+	arguments.push({ line, col, inserted });
+	printf("argumentul copiat: %s\n", inserted.c_str());
+	
+	Operation op;
+    op.operation = std::bind(&DocumentManager::addText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	op.oppositeOperation = std::bind(&DocumentManager::removeText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    operationStack.push(op);
+
+	return true;
 }
 
-bool DocumentManager::insertLine(int line, const string& text)
+bool DocumentManager::insertLine(int line, const string& sample)//????
 {
-	if (line < 0 or line > getLineCount()) {
-		printf("Error at insertLine: invalid line\n");
-		return false;
+	try{
+		if (line < 0 or line > getLineCount()) {
+			throw outOfBounds;
+		}
 	}
+	catch (exception& e) {
+		cerr << "Error at insertLine: " <<  e.what();
+		return false;
+	} 
+	string text = sample;
 	int stringSize = text.size();
+	if (text[stringSize-1] != '\n') {
+		text += '\n';
+		stringSize++;
+	}
 	printf("stringsize: %d\n", stringSize);
 	int pos = lineBuffer[line];
 	printf("program tried inserting a line at position: %d\n", pos);
@@ -152,10 +174,16 @@ bool DocumentManager::insertLine(int line, const string& text)
 
 bool DocumentManager::deleteText(int line, int col, int size)
 {
-	if (line < 0 or (lineBuffer[line] + col + size >= lineBuffer[getLineCount()])) {//size ca sa stearga pana la final
-		printf("Error at deleteText: invalid line\n");
-		return false;
+	printf("start of deleteText\n-----------------------------------------------\n");
+	try{
+		if (line < 0 or (lineBuffer[line] + col + size > lineBuffer[getLineCount()])) {
+			throw outOfBounds;
+		}
 	}
+	catch (exception& e) {
+		cerr << "Error at deleteText: " <<  e.what();
+		return false;
+	} 
 	int startpos = lineBuffer[line] + col;
 	int endpos = startpos + size;
 	int endlCount = 0;
@@ -169,11 +197,12 @@ bool DocumentManager::deleteText(int line, int col, int size)
 	
 	if (endlCount) {
 		//lineBuffer[line + endlCount] = lineBuffer[line];
-		lineBuffer.erase(lineBuffer.begin() + line +1, lineBuffer.begin() + line + endlCount);
+		lineBuffer.erase(lineBuffer.begin() + line +1, lineBuffer.begin() + line + endlCount+1);
 	}
 
 	printf("text from %d to %d was deleted\n", startpos, endpos);
-	printf("text deleted:\n%s\n", buffer.substr(startpos, endpos - startpos).c_str());
+	string deleted = buffer.substr(startpos, endpos - startpos);
+	printf("text deleted: %s\n",deleted.c_str());
 	buffer.erase(buffer.begin() + startpos, buffer.begin() + endpos);
 	for (int level = line+1; level <= getLineCount(); ++level) {
 		lineBuffer[level] -= size;
@@ -183,15 +212,30 @@ bool DocumentManager::deleteText(int line, int col, int size)
 			printf("line %d starts at position %d in the given string\n", i, lineBuffer[i]);
 		}
 	printf("the string after the removal operation:\n%s\n-----------------------------------------------\n", buffer.c_str());
+
+
+	//for logging
+
+	arguments.push({ line, col, deleted });
+
+	Operation op1;
+    op1.operation = std::bind(&DocumentManager::removeText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	op1.oppositeOperation = std::bind(&DocumentManager::addText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    operationStack.push(op1);
 	return true;
 }
 
 bool DocumentManager::deleteLine(int line)
 {
-	if (line < 0 or line >= getLineCount()) {
-		printf("Error at deleteLine: invalid line\n");
-		return false;
+	try{
+		if (line < 0 or line >= getLineCount()) {
+			throw outOfBounds;
+		}
 	}
+	catch (exception& e) {
+		cerr << "Error at deleteLine: " <<  e.what();
+		return false;
+	} 
 	int startpos = lineBuffer[line];
 	int endpos = lineBuffer[line+1];
 	int size = lineBuffer[line + 1] - lineBuffer[line];
@@ -209,10 +253,15 @@ bool DocumentManager::deleteLine(int line)
 
 string DocumentManager::getLine(int line)
 {
-	if (line < 0 or line >= getLineCount()) {
-		printf("Error at getLine: invalid line argument\n");
-		return string("");
+	try{
+		if (line < 0 or line >= getLineCount()) {
+			throw outOfBounds;
+		}
 	}
+	catch (exception& e) {
+		cerr << "Error at getLine: " <<  e.what();
+		return string("");
+	} 
 	string result("");
 	int startpos = lineBuffer[line];
 	int endpos = lineBuffer[line + 1] - 1;
@@ -222,25 +271,99 @@ string DocumentManager::getLine(int line)
 	return result;
 }
 
-bool DocumentManager::swapLines(int line1, int line2)//swaplines pt mai multe
+bool DocumentManager::swapLines(int line1, int line2, const string& s)//swaplines pt mai multe
 {
+	printf("start of swapLines\n-----------------------------------------------\n");
 	int lineC = getLineCount();
-	if ((line1 >= lineC or line1 < 0) or (line2 >= lineC or line2 < 0)) {
-		printf("Error at swapLines: invalid line\n");
-		return false;
+	try{
+		if ((line1 >= lineC or line1 < 0) or (line2 >= lineC or line2 < 0)) {
+			throw outOfBounds;
+		}
 	}
+	catch (exception& e) {
+		cerr << "Error at swapLines: " <<  e.what();
+		return false;
+	} 
 	if (line1 == line2) {
 		return true;
 	}
 	string substr1 = getLine(line1);
 	string substr2 = getLine(line2);
-	deleteLine(line1);
-	insertLine(line1, substr2);
-	deleteLine(line2);
-	insertLine(line2, substr1);
+	removeText(line1, 0, buffer.substr(lineBuffer[line1], lineBuffer[line1+1]-lineBuffer[line1]));
+	addText(line1, 0,substr2);
+	removeText(line2, 0, buffer.substr(lineBuffer[line2], lineBuffer[line2+1]-lineBuffer[line2]));
+	addText(line2, 0, substr1);
+	//deleteLine(line1);
+	//insertLine(line1, substr2);
+	//deleteLine(line2);
+	//insertLine(line2, substr1);
 	for (int i = 0; i < lineBuffer.size(); ++i) {
 		printf("line %d starts at position %d in the given string\n", i, lineBuffer[i]);
 	}
+
+	arguments.push({ line1, line2, ""});//dau push la argumente invers
+
+	Operation op;
+    op.operation = std::bind(&DocumentManager::atomicSwap, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	op.oppositeOperation = std::bind(&DocumentManager::atomicSwap, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    operationStack.push(op);
+	
+	return true;
+}
+
+bool DocumentManager::swapLineWithSelected(int startSelect, int endSelect, const string& finPos)//implementarea nonscuffed nu o vad cu aceeasi signatura
+{
+	printf("start of swapLineWithSelected\n-----------------------------------------------\n");
+	int finalPos = stoi(finPos);
+	int lineC = getLineCount();
+	try{
+		if ((startSelect >= lineC or startSelect < 0) or (endSelect >= lineC or endSelect < 0) or (finalPos + endSelect-startSelect >= lineC)) {
+			throw outOfBounds;
+		}
+	}
+	catch (exception& e) {
+		cerr << "Error at swapLineWithSelected: " <<  e.what();
+		return false;
+	} 
+	if (startSelect == finalPos) {
+		return true;
+	}
+	int distanceMoved = finalPos - startSelect;
+	int noItt = endSelect - startSelect + 1;
+	int i = 0;
+	if (distanceMoved > 0) {
+		int line = endSelect;
+		while (noItt) {
+			string text = buffer.substr(lineBuffer[line], lineBuffer[line + 1] - lineBuffer[line]);
+			printf("textul %s de la linia %d va fi mutat la linia %d\n", text.c_str(), line, line+distanceMoved);
+			removeText(line, 0, text);
+			addText(line + distanceMoved , 0, text);
+			noItt--;
+			line--;
+		}
+	}
+	else {
+		int line = startSelect;
+		int noItt = endSelect - startSelect + 1;
+		while (noItt) {
+			string text = buffer.substr(lineBuffer[line], lineBuffer[line + 1] - lineBuffer[line]);
+			printf("textul %s de la linia %d va fi mutat la linia %d\n", text.c_str(), line, line+distanceMoved);
+			removeText(line, 0, text);
+			addText(line + distanceMoved , 0, text);
+			noItt--;
+			line++;
+		}
+	}
+	
+	string arg3 = to_string(startSelect);
+	arguments.push({ finalPos, distanceMoved+endSelect, arg3});//dau push la argumente invers
+
+	Operation op;
+    op.operation = std::bind(&DocumentManager::atomicSwapLinesWithSelected, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	op.oppositeOperation = std::bind(&DocumentManager::atomicSwapLinesWithSelected, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    operationStack.push(op);
+
+	return true;
 }
 
 vector<pair<string, int>> DocumentManager::tokenize()//mai bine cu map?
@@ -285,24 +408,34 @@ vector<int> DocumentManager::searchForWord(const string& word)
 
 bool DocumentManager::copy(int start, int end)
 {
-	if (start < 0 or end >= lineBuffer[getLineCount()]) {
-		printf("Error at copy: invalid line argument\n");
-		return false;
+	try{
+		if (start < 0 or end > lineBuffer[getLineCount()]) {
+			throw outOfBounds;
+		}
 	}
+	catch (exception& e) {
+		cerr << "Error at copy: " <<  e.what();
+		return false;
+	}	
 	if (!copyBuffer.empty()) {
 		copyBuffer.clear();
 	}
-	copyBuffer = buffer.substr(start, end - start+1);
+	copyBuffer = buffer.substr(start, end - start);
 	printf("the copied substring: %s\n-----------------------------------------------\n", copyBuffer.c_str());
 	return true;
 }
 
 bool DocumentManager::paste(int position)
 {
-	if (position < 0 or position > lineBuffer[getLineCount()]) {
-		printf("Error at paste: invalid position argument");
-		return false;
+	try{
+		if (position < 0 or position > lineBuffer[getLineCount()]) {
+			throw outOfBounds;
+		}
 	}
+	catch (exception& e) {
+		cerr << "Error at paste: " <<  e.what();
+		return false;
+	}	
 	if (copyBuffer.empty()) {
 		printf("Error at paste: copy buffer is empty");
 		return false;
@@ -313,7 +446,29 @@ bool DocumentManager::paste(int position)
 	insertText(line, col, copyBuffer);
 	printf("the program tried inserting the copied text at line %d and column %d \n-----------------------------------------------\n", line, col);
 	printf("the string after pasting:\n%s\n-----------------------------------------------\n", buffer.c_str());
+
+	arguments.push({ line, col, copyBuffer});
+	Operation op;
+    op.operation = std::bind(&DocumentManager::addText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	op.oppositeOperation = std::bind(&DocumentManager::removeText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    operationStack.push(op);
+
 	copyBuffer.clear();
+	return true;
+}
+
+bool DocumentManager::cut(int start, int end, const string& s) //ar trebui curatat si bufferul la undo
+{
+	printf("start of cut\n-----------------------------------------------\n");
+	copy(start, end);
+	if (start == end) {
+		printf("cut:start == end\n");
+		return true;
+	}
+	int startLine = 0;
+	while (lineBuffer[startLine + 1] < start)startLine++;
+	int startCol = start - startLine;
+	deleteText(startLine, startCol, end - start)+1;
 	return true;
 }
 
@@ -459,5 +614,182 @@ vector<int> DocumentManager::find(const string& text, const string& pattern)
 			printf("%d ", pos);
 		}
 		return found;
+	}
+}
+
+bool DocumentManager::addText(int line, int col, const string& text)
+{
+	printf("object tried inserting text at line %d, col %d, the text inserted was %s\n", line, col, text.c_str());
+	printf("start of addText\n-----------------------------------------------\n");
+	try{
+		if ((line > getLineCount() or line < 0) or (line == getLineCount() and col > 0) or (lineBuffer[line] + col > buffer.size())) {
+			throw outOfBounds;
+		}
+	}
+	catch (exception& e) {
+		cerr << "Error at insertText: " <<  e.what();
+		return false;
+	} 
+
+	printf("the program tried inserting at line %d, col %d, position %d, text %s\n-----------------------------------------------\n", line, col, lineBuffer[line] + col, text.c_str());
+	buffer.insert(lineBuffer[line] + col, text);
+	int insSize = text.size();
+	bool newLine = false;
+	int lineC = getLineCount();
+	for (int level = line + 1; level <= lineC; ++level) {
+		lineBuffer[level] += insSize;
+	}
+	for (int i = 0; i < insSize; ++i) {
+		if (text[i] == '\n' or text[i] == 10) {
+			newLine = true;
+			int pos = lineBuffer[line] + col;
+			printf("a newline was found at position %d in the inserted text\n-----------------------------------------------\n", pos + i + 1);
+			lineBuffer.push_back(pos + i + 1);
+		}
+	}
+	if (newLine) {
+		sort(lineBuffer.begin(), lineBuffer.end());
+		printf("resorted lineBuffer vector\n-----------------------------------------------\n");
+	}
+	for (int i = 0; i < lineBuffer.size(); ++i) {
+		printf("line %d starts at position %d in the given string\n", i, lineBuffer[i]);
+	}
+	printf("the string after the insertion operation:\n%s\n-----------------------------------------------\n", buffer.c_str());	
+	return true;
+}
+
+bool DocumentManager::removeText(int line, int col, const string& text)
+{
+	int size = text.size();
+	printf("object tried deleting text at line %d, col %d, the text deleted has size %d\n", line, col, size);
+	printf("start of removeText\n-----------------------------------------------\n");
+	try{
+		if (line < 0 or (lineBuffer[line] + col + size > lineBuffer[getLineCount()])) {
+			printf("position: %d %d %d %d\n", lineBuffer[line] + col + size, lineBuffer[line], col, size);
+			throw outOfBounds;
+		}
+	}
+	catch (exception& e) {
+		cerr << "Error at deleteText: " <<  e.what();
+		return false;
+	} 
+	int startpos = lineBuffer[line] + col;
+	int endpos = startpos + size;
+	int endlCount = 0;
+	for (int i = startpos; i < endpos; ++i) {
+		if (buffer[i] == '\n' or buffer[i] == 10) {
+			endlCount++;
+		}
+	}
+	printf("the string before the removal operation:\n%s\n-----------------------------------------------\n", buffer.c_str());
+	printf("found %d newlines\n-----------------------------------------------\n", endlCount);
+	
+	if (endlCount) {
+		//lineBuffer[line + endlCount] = lineBuffer[line];
+		lineBuffer.erase(lineBuffer.begin() + line +1, lineBuffer.begin() + line + endlCount+1);
+	}
+
+	printf("text from %d to %d was deleted\n", startpos, endpos);
+	string deleted = buffer.substr(startpos, endpos - startpos);
+	printf("text deleted: %s\n",deleted.c_str());
+	buffer.erase(buffer.begin() + startpos, buffer.begin() + endpos);
+	for (int level = line+1; level <= getLineCount(); ++level) {
+		lineBuffer[level] -= size;
+	}
+	for (int i = 0; i < lineBuffer.size(); ++i) {
+		printf("line %d starts at position %d in the given string\n", i, lineBuffer[i]);
+		}
+	printf("the string after the removal operation:\n%s\n-----------------------------------------------\n", buffer.c_str());
+
+	return true;
+}
+
+bool DocumentManager::atomicSwap(int line1, int line2, const string& text)
+{
+	printf("start of atomicSwap\n-----------------------------------------------\n");
+	int lineC = getLineCount();
+	try{
+		if ((line1 >= lineC or line1 < 0) or (line2 >= lineC or line2 < 0)) {
+			throw outOfBounds;
+		}
+	}
+	catch (exception& e) {
+		cerr << "Error at swapLines: " <<  e.what();
+		return false;
+	} 
+	if (line1 == line2) {
+		return true;
+	}
+	string substr1 = getLine(line1);
+	string substr2 = getLine(line2);
+	removeText(line1, 0, buffer.substr(lineBuffer[line1], lineBuffer[line1+1]-lineBuffer[line1]));
+	addText(line1, 0,substr2);
+	removeText(line2, 0, buffer.substr(lineBuffer[line2], lineBuffer[line2+1]-lineBuffer[line2]));
+	addText(line2, 0, substr1);
+	return true;
+}
+
+bool DocumentManager::atomicSwapLinesWithSelected(int startSelect, int endSelect, const string& finPos)
+{
+	printf("start of atomicSwapLineWithSelected\n-----------------------------------------------\n");
+	int finalPos = stoi(finPos);
+	int lineC = getLineCount();
+	try{
+		if ((startSelect >= lineC or startSelect < 0) or (endSelect >= lineC or endSelect < 0) or (finalPos + endSelect-startSelect >= lineC)) {
+			throw outOfBounds;
+		}
+	}
+	catch (exception& e) {
+		cerr << "Error at swapLineWithSelected: " <<  e.what();
+		return false;
+	} 
+	if (startSelect == finalPos) {
+		return true;
+	}
+	int distanceMoved = finalPos - startSelect;
+	int noItt = endSelect - startSelect + 1;
+	int i = 0;
+	if (distanceMoved > 0) {
+		int line = endSelect;
+		while (noItt) {
+			string text = buffer.substr(lineBuffer[line], lineBuffer[line + 1] - lineBuffer[line]);
+			printf("textul %s de la linia %d va fi mutat la linia %d\n", text.c_str(), line, line+distanceMoved);
+			removeText(line, 0, text);
+			addText(line + distanceMoved , 0, text);
+			noItt--;
+			line--;
+		}
+	}
+	else {
+		int line = startSelect;
+		int noItt = endSelect - startSelect + 1;
+		while (noItt) {
+			string text = buffer.substr(lineBuffer[line], lineBuffer[line + 1] - lineBuffer[line]);
+			printf("textul %s de la linia %d va fi mutat la linia %d\n", text.c_str(), line, line+distanceMoved);
+			removeText(line, 0, text);
+			addText(line + distanceMoved , 0, text);
+			noItt--;
+			line++;
+		}
+	}
+	return true;
+}
+
+
+void DocumentManager::logs()
+{
+	int stackSize = operationStack.size();
+	while (stackSize) {
+		Operation currentOperation = operationStack.top();
+		auto argument = arguments.top();
+		operationStack.pop();
+		arguments.pop();
+		stackSize--;
+		printf("argument %d %d %s\n", get<0>(argument), get<1>(argument), get<2>(argument).c_str());
+		//currentOperation.operation(get<0>(argument), get<1>(argument), get<2>(argument));
+
+		// Call the opposite operation
+		currentOperation.oppositeOperation(get<0>(argument), get<1>(argument), get<2>(argument));
+
 	}
 }
