@@ -1,3 +1,4 @@
+
 #include "DocumentManager.h"
 /*
 TO-DO'S
@@ -44,7 +45,7 @@ bool DocumentManager::create(const string& filename)
 		char ch;
 		printf("File already exists. Overwrite? Y/N\n");
 		cin >> ch;
-		if (ch != 'y' and ch != 'Y') {
+		if (ch != 'y' && ch != 'Y') {
 			return false;
 		}
 	}
@@ -71,7 +72,7 @@ bool DocumentManager::initializeLineBuffer()
 	if (bufferSize == 0)return false;
 
 	for (int i = 0; i < bufferSize; ++i) {
-		if (buffer[i] == '\n' or buffer[i] == 10) {
+		if (buffer[i] == '\n' || buffer[i] == 10) {
 			lineIndex = i + 1;
 			lineBuffer.push_back(lineIndex);
 		}
@@ -89,6 +90,37 @@ int DocumentManager::getLineCount()
 	return lineBuffer.size()-1;
 }
 
+int DocumentManager::getColCount(int line)
+{
+    return lineBuffer[line + 1] - lineBuffer[line];
+}
+string DocumentManager::getBufferSection(int line_start, int col_start, int line_stop, int col_stop)
+{
+	string result = "";
+
+	for(int i = lineBuffer[line_start] + col_start; i < lineBuffer[line_stop] + col_stop; i++)
+	{
+		result += buffer[i];
+	}
+	return result;
+}
+
+/*  functia asta era duplicata.. verifica te rog care e cea scrisa de tine ultima data si sterge o pe cealalta
+bool DocumentManager::insertText(int line, int col, const string& inserted)//de implementat exceptii.
+{
+	if (line > getLineCount() || line < 0) {
+		printf("Error at insertText : line argument is invalid");
+		return false;
+	}
+	if (line == getLineCount() && col > 0) {
+		printf("Error at insertText : line argument is invalid");
+		return false;
+	}
+	if (lineBuffer[line] + col > buffer.size()) {
+		printf("Error at insertText : line argument is invalid");
+		return false;
+	}
+  */
 bool DocumentManager::insertText(int line, int col, const string& inserted)//de implementat exceptii.
 {
 	printf("start of insertText\n-----------------------------------------------\n");
@@ -111,7 +143,7 @@ bool DocumentManager::insertText(int line, int col, const string& inserted)//de 
 		lineBuffer[level] += insSize;
 	}
 	for (int i = 0; i < insSize; ++i) {
-		if (inserted[i] == '\n' or inserted[i] == 10) {
+		if (inserted[i] == '\n' || inserted[i] == 10) {
 			newLine = true;
 			int pos = lineBuffer[line] + col;
 			printf("a newline was found at position %d in the inserted text\n-----------------------------------------------\n", pos + i + 1);
@@ -188,7 +220,7 @@ bool DocumentManager::deleteText(int line, int col, int size)
 	int endpos = startpos + size;
 	int endlCount = 0;
 	for (int i = startpos; i < endpos; ++i) {
-		if (buffer[i] == '\n' or buffer[i] == 10) {
+		if (buffer[i] == '\n' || buffer[i] == 10) {
 			endlCount++;
 		}
 	}
@@ -375,7 +407,7 @@ vector<pair<string, int>> DocumentManager::tokenize()//mai bine cu map?
 	vector<pair<string, int>>words;
 	do {
 		endpos = buffer.find_first_of(" .,/?!;:\"(){}[]%+=\n", beginpos);//ce separatori? + merge pt endl?
-		if (beginpos != endpos and endpos != string::npos) {
+		if (beginpos != endpos && endpos != string::npos) {
 			word = buffer.substr(beginpos, endpos - beginpos);
 			pair<string, int>p = { word, beginpos };
 			words.push_back(p);//de ce nu &p
@@ -472,6 +504,14 @@ bool DocumentManager::cut(int start, int end, const string& s) //ar trebui curat
 	return true;
 }
 
+string DocumentManager::getBuffer()
+{
+	return buffer;
+}
+vector<int> DocumentManager::getLineBuffer()
+{
+	return lineBuffer;
+}
 vector<int> DocumentManager::badCharacterHeuristic(const string& pattern)
 {
 	vector<int>BC(NO_CHARS, -1);
