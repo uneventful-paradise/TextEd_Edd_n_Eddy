@@ -2,6 +2,9 @@
 using namespace std;
 #include "DocumentManager.h"
 #include "SFML/Graphics.hpp"
+#include "Cursor.h"
+#include "Select.h"
+#include"ContentEditor.h"
 
 int main(int argc, char*argv[])
 {
@@ -37,8 +40,9 @@ int main(int argc, char*argv[])
    // document.deleteText(2, 3, 2);
     //document.insertText(3, 0, "inserted\n");
    // document.swapLines(0, 1);//pot folosi op cu line in loc de add si remove
-    document.swapLineWithSelected(2, 3, "1");
+    document.swapLineWithSelected(2, 3, "5");
     document.swapLineWithSelected(5, 6, "0");
+    document.cut(0, 7);
     document.logs();
     return 0;
 }

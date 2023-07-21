@@ -12,8 +12,8 @@
 #define NO_CHARS 256
 
 struct Operation {
-    std::function<bool(int, int, const std::string&)> operation;
-    std::function<bool(int, int, const std::string&)> oppositeOperation;
+    function<bool(int, int, const string&)> operation;
+    function<bool(int, int, const string&)> oppositeOperation;
 };
 
 using namespace std;
@@ -34,19 +34,18 @@ class DocumentManager {
 	bool open(const string& filename);
 	bool save();
 	//tools for handling text
-	//7. charsInLine
-	//8. buffer position
+
 	
-	//TO-DO : save the document after each change (insertion /deletion)(via isChanged) or before closing
 	bool initializeLineBuffer();
 	int getLineCount();
 	int getColCount(int line);
 	string getBufferSection(int line_start, int col_start, int line_stop, int col_stop);
 	string getBuffer();
+	string getCopyBuffer();
 	vector<int> getLineBuffer();
 	bool insertText(int line, int col, const string& inserted);
 	bool insertLine(int line, const string& text);
-	bool deleteText(int line, int col, int size);//stack cu substringuri sterse
+	bool deleteText(int line, int col, int size);
 	bool deleteLine(int line);
 	string getLine(int line);
 	bool swapLines(int line1, int line2, const string& s = "");
@@ -55,7 +54,7 @@ class DocumentManager {
 	vector<int> searchForWord(const string& word);
 	bool copy(int start, int end);
 	bool paste(int position);
-	bool cut(int start, int end, const string& s ="");//cum readuc continutul pecedent in copyBuffer?
+	bool cut(int start, int end, const string& s ="");
 	
 	vector<int>badCharacterHeuristic(const string& pattern);
 	vector<int>failureF(const string& pattern);

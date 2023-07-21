@@ -105,22 +105,6 @@ string DocumentManager::getBufferSection(int line_start, int col_start, int line
 	return result;
 }
 
-/*  functia asta era duplicata.. verifica te rog care e cea scrisa de tine ultima data si sterge o pe cealalta
-bool DocumentManager::insertText(int line, int col, const string& inserted)//de implementat exceptii.
-{
-	if (line > getLineCount() || line < 0) {
-		printf("Error at insertText : line argument is invalid");
-		return false;
-	}
-	if (line == getLineCount() && col > 0) {
-		printf("Error at insertText : line argument is invalid");
-		return false;
-	}
-	if (lineBuffer[line] + col > buffer.size()) {
-		printf("Error at insertText : line argument is invalid");
-		return false;
-	}
-  */
 bool DocumentManager::insertText(int line, int col, const string& inserted)//de implementat exceptii.
 {
 	printf("start of insertText\n-----------------------------------------------\n");
@@ -160,13 +144,13 @@ bool DocumentManager::insertText(int line, int col, const string& inserted)//de 
 	printf("the string after the insertion operation:\n%s\n-----------------------------------------------\n", buffer.c_str());
 	//for logging
 
-	arguments.push({ line, col, inserted });
-	printf("argumentul copiat: %s\n", inserted.c_str());
-	
-	Operation op;
-    op.operation = std::bind(&DocumentManager::addText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-	op.oppositeOperation = std::bind(&DocumentManager::removeText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    operationStack.push(op);
+	//arguments.push({ line, col, inserted });
+	//printf("argumentul copiat: %s\n", inserted.c_str());
+	//
+	//Operation op;
+ //   op.operation = std::bind(&DocumentManager::addText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	//op.oppositeOperation = std::bind(&DocumentManager::removeText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+ //   operationStack.push(op);
 
 	return true;
 }
@@ -248,12 +232,12 @@ bool DocumentManager::deleteText(int line, int col, int size)
 
 	//for logging
 
-	arguments.push({ line, col, deleted });
+	//arguments.push({ line, col, deleted });
 
-	Operation op1;
-    op1.operation = std::bind(&DocumentManager::removeText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-	op1.oppositeOperation = std::bind(&DocumentManager::addText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    operationStack.push(op1);
+	//Operation op1;
+ //   op1.operation = std::bind(&DocumentManager::removeText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	//op1.oppositeOperation = std::bind(&DocumentManager::addText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+ //   operationStack.push(op1);
 	return true;
 }
 
@@ -387,13 +371,13 @@ bool DocumentManager::swapLineWithSelected(int startSelect, int endSelect, const
 		}
 	}
 	
-	string arg3 = to_string(startSelect);
-	arguments.push({ finalPos, distanceMoved+endSelect, arg3});//dau push la argumente invers
+	//string arg3 = to_string(startSelect);
+	//arguments.push({ finalPos, distanceMoved+endSelect, arg3});//dau push la argumente invers
 
-	Operation op;
-    op.operation = std::bind(&DocumentManager::atomicSwapLinesWithSelected, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-	op.oppositeOperation = std::bind(&DocumentManager::atomicSwapLinesWithSelected, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    operationStack.push(op);
+	//Operation op;
+ //   op.operation = std::bind(&DocumentManager::atomicSwapLinesWithSelected, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	//op.oppositeOperation = std::bind(&DocumentManager::atomicSwapLinesWithSelected, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+ //   operationStack.push(op);
 
 	return true;
 }
@@ -479,17 +463,16 @@ bool DocumentManager::paste(int position)
 	printf("the program tried inserting the copied text at line %d and column %d \n-----------------------------------------------\n", line, col);
 	printf("the string after pasting:\n%s\n-----------------------------------------------\n", buffer.c_str());
 
-	arguments.push({ line, col, copyBuffer});
-	Operation op;
-    op.operation = std::bind(&DocumentManager::addText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-	op.oppositeOperation = std::bind(&DocumentManager::removeText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    operationStack.push(op);
+	//arguments.push({ line, col, copyBuffer});
+	//Operation op;
+ //   op.operation = std::bind(&DocumentManager::addText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	//op.oppositeOperation = std::bind(&DocumentManager::removeText, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+ //   operationStack.push(op);
 
-	copyBuffer.clear();
 	return true;
 }
 
-bool DocumentManager::cut(int start, int end, const string& s) //ar trebui curatat si bufferul la undo
+bool DocumentManager::cut(int start, int end, const string& s) //in logging trebuie adaugat doar deleteText
 {
 	printf("start of cut\n-----------------------------------------------\n");
 	copy(start, end);
@@ -497,16 +480,23 @@ bool DocumentManager::cut(int start, int end, const string& s) //ar trebui curat
 		printf("cut:start == end\n");
 		return true;
 	}
+	string deletedText = buffer.substr(start, end - start + 1);
+	printf("the deleted text: %s\n", deletedText.c_str());
 	int startLine = 0;
 	while (lineBuffer[startLine + 1] < start)startLine++;
 	int startCol = start - startLine;
-	deleteText(startLine, startCol, end - start)+1;
+	deleteText(startLine, startCol, end - start+1);
+	
 	return true;
 }
 
 string DocumentManager::getBuffer()
 {
 	return buffer;
+}
+string DocumentManager::getCopyBuffer()
+{
+	return copyBuffer;
 }
 vector<int> DocumentManager::getLineBuffer()
 {
