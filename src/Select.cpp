@@ -1,15 +1,25 @@
-#include "../include/Select.h"
+#include "Select.h"
+#include "Exceptions.h"
 
-Select::Select(Cursor& cursor_data, DocumentManager& doc_data)
+out_of_bounds outOfBounds;
+
+Select::Select(Cursor* cursor_data, DocumentManager* doc_data)
 {
-    this->cursor_data = &cursor_data;
-    this->doc_data = &doc_data;
-    line_start = cursor_data.getLine();
+    this->cursor_data = cursor_data;
+    this->doc_data = doc_data;
+    line_start = cursor_data->getLine();
     line_stop = line_start;
-    col_start = cursor_data.getCol();
+    col_start = cursor_data->getCol();
     col_stop = col_start;
     balance_point = 0;
+        
+    coordinates currCoord;
+    currCoord.lineStart = line_start;
+    currCoord.lineEnd = line_stop;
+    currCoord.colStart = col_start;
+    currCoord.colEnd = col_stop;
 }
+
 
 void Select::Log()
 {
@@ -29,7 +39,7 @@ bool Select::moveH(int distance)
         else if(distance < 0)
             move_if_zero = 2;
     }
-    if(balance_point > 0 || move_if_zero == 1)
+    if(balance_point > 0 || distance > 0)
     {
         if( line_stop == 0 && col_stop + distance < 0)
             return false;
@@ -40,7 +50,7 @@ bool Select::moveH(int distance)
         
         if( col_stop >= doc_data->getColCount(line_stop))
         {
-            col_stop = doc_data->getColCount(line_stop) - col_stop;
+            col_stop = col_stop - doc_data->getColCount(line_stop);
             line_stop++;
         }
         if( col_stop < 0)
@@ -113,3 +123,79 @@ bool Select::moveV(int distance)
     }
     return false;
 }
+
+bool Select::isSelected()
+{
+    return(currCoord.colEnd != currCoord.colStart or currCoord.lineEnd != currCoord.lineStart);
+}
+
+coordinates* Select::getSelectionCoordinates()
+{
+    return &currCoord;
+}
+
+bool Select::newSelection(int line, int col)
+{
+    try{
+        if (line < 0 or line + col > doc_data->getLineBuffer()[doc_data->getLineCount()]) {
+			throw outOfBounds;
+		}
+	}
+	catch (exception& e) {
+		cerr << "Error at newSelection: " <<  e.what();
+		return false;
+	}	    
+    currCoord.colStart = currCoord.colEnd = col;
+    currCoord.lineStart = currCoord.lineEnd = line;
+    return true;
+}
+
+bool Select::newSelectionOnCursor()
+{
+    int line = cursor_data->getLine();
+    int col = cursor_data->getCol();
+    return newSelection(line, col);
+}
+
+void Select::resetSelection()
+{
+    int line = cursor_data->getLine();
+    int col = cursor_data->getCol();
+    currCoord.lineStart = currCoord.lineEnd = line;
+    currCoord.colStart = currCoord.colEnd = col;
+}
+
+void Select::updateSelectionOnCursor()//use moveH
+{
+    int line = cursor_data->getLine();
+    int col = cursor_data->getCol();
+    while (currCoord.lineStart > line) {
+        moveV(-1);
+        while (currCoord.colStart > col) {
+            moveH(-1);
+        }
+        while (currCoord.colEnd < col) {
+            moveH(1);
+        }
+        updateSelectionCoordinates();
+    }
+    while (currCoord.lineEnd < line) {
+        moveV(1);
+        while (currCoord.colStart > col) {
+            moveH(-1);
+        }
+        while (currCoord.colEnd < col) {
+            moveH(1);
+        }
+        updateSelectionCoordinates();
+    }
+}
+
+void Select::updateSelectionCoordinates()
+{
+    if (currCoord.lineStart != line_start)currCoord.lineStart = line_start;
+    if (currCoord.lineEnd != line_stop)currCoord.lineEnd = line_stop;
+    if (currCoord.colStart != col_start)currCoord.colStart = col_start;
+    if (currCoord.colEnd != col_stop)currCoord.colEnd = col_stop;
+}
+

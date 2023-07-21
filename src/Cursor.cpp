@@ -1,4 +1,4 @@
-#include "../include/Cursor.h"
+#include "Cursor.h"
 
 Cursor::Cursor(DocumentManager *data)
 {
@@ -124,3 +124,68 @@ bool Cursor::jumpTo(int where)
             return false;
     }
 }
+
+void Cursor::updateCoordinates(int line, int col)
+{
+    this->line = line;
+    this->col = col;
+}
+
+
+
+bool Cursor::moveMultipleH(int direction)
+{
+    if(direction > 0)
+    {
+        while(direction != 0)
+        {
+            direction--;
+            this->moveH(1);
+        }
+        return true;
+    }
+    else if(direction < 0)
+    {
+        while(direction != 0)
+        {
+            direction++;
+            this->moveH(-1);
+        }
+        return true;
+    }
+    return false;
+}
+bool Cursor::moveMultipleV(int direction)
+{
+    if(direction > 0)
+    {
+        while(direction != 0)
+        {
+            direction--;
+            this->moveV(1);
+        }
+        return true;
+    }
+    else if(direction < 0)
+    {
+        while(direction != 0)
+        {
+            direction++;
+            this->moveV(-1);
+        }
+        return true;
+    }
+    return false;
+}
+    else if(direction < 0)
+    {
+        while(direction != 0)
+        {
+            direction++;
+            this->moveV(-1);
+        }
+        return true;
+    }
+    return false;
+}
+
